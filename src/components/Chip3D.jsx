@@ -89,7 +89,7 @@ function PlexiglassOverlay({ visible, config }) {
   );
 }
 
-export default function Chip3D({ visibleLayers, machineState, overlayConfig, layerSpacing = 1.0, themeMode, isEStop, flipChip }) {
+export default function Chip3D({ visibleLayers, machineState, overlayConfig, layerSpacing = 1.0, themeMode, isEStop }) {
   const [geometries, setGeometries] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -180,7 +180,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
 
       {!loading && (
         <Center>
-          <group rotation={[flipChip ? Math.PI / 2 : -Math.PI / 2, 0, 0]}>
+          <group rotation={[-Math.PI / 2, 0, 0]}>
             {Object.keys(geometries).map(layerId => {
               if (!visibleLayers[layerId] || visibleLayers[layerId] <= 0 || !geometries[layerId]) return null;
 
@@ -380,7 +380,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
         </Center>
       )}
 
-      <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI / 2} />
+      <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI} />
     </Canvas>
   );
 }

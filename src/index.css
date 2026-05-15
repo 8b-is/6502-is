@@ -59,7 +59,7 @@ body {
   height: 100%;
   pointer-events: none;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(320px, auto);
   grid-template-rows: auto 1fr;
   padding: 1rem;
   padding-top: max(1rem, env(safe-area-inset-top));
@@ -500,6 +500,7 @@ input[type="range"]::-moz-range-thumb {
   align-self: flex-start;
   justify-self: center;
   max-width: 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   background: var(--glass-bg);
@@ -935,10 +936,29 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* Small desktop / large tablet — keep three-column layout but tighten */
-@media (max-width: 1280px) {
+@media (max-width: 1350px) {
   .ui-overlay {
     gap: 1rem;
     padding: 0.75rem;
+    grid-template-columns: 1fr minmax(280px, auto);
+    grid-template-rows: auto auto 1fr;
+  }
+  .app-header {
+    grid-column: 1;
+    grid-row: 1;
+    padding: 1rem 1.25rem;
+  }
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+  .top-dashboard {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: flex-start;
+  }
+  .right-panels {
+    grid-column: 2;
+    grid-row: 1 / span 3;
   }
   .right-panels > * {
     width: 280px !important;
@@ -946,12 +966,6 @@ input[type="range"]::-moz-range-thumb {
   .layer-toggle-panel,
   .programming-panel {
     padding: 1rem;
-  }
-  .app-header {
-    padding: 1rem 1.25rem;
-  }
-  .app-header h1 {
-    font-size: 1.5rem;
   }
 }
 

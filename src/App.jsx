@@ -25,7 +25,6 @@ function App() {
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false);
   const [themeMode, setThemeMode] = useState(null);
   const [isEStop, setIsEStop] = useState(false);
-  const [flipChip, setFlipChip] = useState(false);
   
   const [overlayConfig, setOverlayConfig] = useState({
     rotation: -90, // degrees
@@ -50,7 +49,6 @@ function App() {
           layerSpacing={layerSpacing}
           themeMode={themeMode}
           isEStop={isEStop}
-          flipChip={flipChip}
         />
       </div>
       <div className="ui-overlay">
@@ -62,13 +60,6 @@ function App() {
           </div>
           
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button 
-              className="btn" 
-              onClick={() => setFlipChip(!flipChip)}
-              style={{ background: 'var(--glass-bg)', color: '#fff', padding: '10px 15px', borderRadius: '8px' }}
-            >
-              🔄 Flip
-            </button>
             <button 
               className={`btn ${isEStop ? '' : 'stop'}`} 
               onClick={() => setIsEStop(!isEStop)}
