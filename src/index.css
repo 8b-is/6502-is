@@ -300,6 +300,29 @@ input[type="range"]::-moz-range-thumb {
   width: 100%;
 }
 
+/* Circular icon buttons (mobile programming controls, etc.) */
+.btn.btn-circle {
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.mobile-programming-controls {
+  display: flex;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.modal-controls {
+  margin-top: 1.5rem;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 /* Layer Panel */
 .layer-toggle-panel {
   width: 340px;

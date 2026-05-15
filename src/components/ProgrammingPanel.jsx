@@ -182,56 +182,27 @@ export default function ProgrammingPanel({ setSharedMachineState, themeMode, isE
 
   if (isMobile) {
     return (
-      <div className="mobile-programming-controls" style={{ display: 'flex', gap: '10px', pointerEvents: 'auto' }}>
+      <div className="mobile-programming-controls">
         {showEditorModal && (
           <div className="modal-overlay" onClick={() => setShowEditorModal(false)}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
               <button className="modal-close" onClick={() => setShowEditorModal(false)}>×</button>
               <h2>Program Editor</h2>
               {editorContent}
-              <div className="controls" style={{ marginTop: '1.5rem', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <div className="modal-controls">
                 <button className="btn primary" onClick={() => { loadAndReset(); setShowEditorModal(false); }}>Load & Reset</button>
                 <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
               </div>
             </div>
           </div>
         )}
-        
-        <button 
-          className="btn" 
-          onClick={() => setShowEditorModal(true)} 
-          title="Edit Program"
-          style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: '#fff' }}
-        >
-          📝
-        </button>
-        <button 
-          className="btn primary" 
-          onClick={() => loadAndReset()} 
-          title="Reset Simulation"
-          style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-        >
-          🔄
-        </button>
+
+        <button className="btn btn-circle" onClick={() => setShowEditorModal(true)} title="Edit Program" aria-label="Edit Program">📝</button>
+        <button className="btn btn-circle primary" onClick={() => loadAndReset()} title="Reset Simulation" aria-label="Reset Simulation">🔄</button>
         {isRunning ? (
-          <button 
-            className="btn stop" 
-            onClick={stopSimulation} 
-            title="Pause Simulation"
-            style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-          >
-            ⏸
-          </button>
+          <button className="btn btn-circle stop" onClick={stopSimulation} title="Pause Simulation" aria-label="Pause Simulation">⏸</button>
         ) : (
-          <button 
-            className="btn run" 
-            onClick={runSimulation} 
-            disabled={isEStop} 
-            title="Run Simulation"
-            style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-          >
-            ▶️
-          </button>
+          <button className="btn btn-circle run" onClick={runSimulation} disabled={isEStop} title="Run Simulation" aria-label="Run Simulation">▶️</button>
         )}
       </div>
     );
