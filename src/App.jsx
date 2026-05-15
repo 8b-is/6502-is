@@ -67,15 +67,17 @@ function App() {
                 <div className="dashboard-item flags"><span>Flags</span> {machineState.p.replace(/&#8209/g, '-')}</div>
               </div>
               
-              <div className="dashboard-instruction">
-                <div className="cycle-count">Cycle: {Math.floor(machineState.cycle / 2)}</div>
-                <div className="instruction-text">
-                  {machineState.fullInstruction || machineState.instruction}
+              {(!machineState.clockHz || machineState.clockHz <= 6) && (
+                <div className="dashboard-instruction">
+                  <div className="cycle-count">Cycle: {Math.floor(machineState.cycle / 2)}</div>
+                  <div className="instruction-text">
+                    {machineState.fullInstruction || machineState.instruction}
+                  </div>
+                  <div className="instruction-explanation">
+                    {getInstructionExplanation(machineState.fullInstruction || machineState.instruction)}
+                  </div>
                 </div>
-                <div className="instruction-explanation">
-                  {getInstructionExplanation(machineState.fullInstruction || machineState.instruction)}
-                </div>
-              </div>
+              )}
             </div>
           </div>
         )}
