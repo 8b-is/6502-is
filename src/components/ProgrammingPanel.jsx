@@ -175,59 +175,82 @@ export default function ProgrammingPanel({ setSharedMachineState, themeMode, isE
     </>
   );
 
-  return (
-    <div className={`programming-panel ${isCollapsed && !isMobile ? 'collapsed' : ''}`}>
-      {!isMobile && (
-        <div
-          className="panel-header"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          role="button"
-          tabIndex={0}
-          aria-expanded={!isCollapsed}
-          aria-label={isCollapsed ? 'Expand program execution' : 'Collapse program execution'}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
-        >
-          <h2>Program Execution</h2>
-          <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
-        </div>
-      )}
-      
-      {!isMobile ? (
-        <div className="panel-content">
-          {editorContent}
-          <div className="controls">
-            <button className="btn primary" onClick={loadAndReset}>Load & Reset</button>
-            <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
-            {isRunning ? (
-              <button className="btn stop" onClick={stopSimulation}>Pause</button>
-            ) : (
-              <button className="btn run" onClick={runSimulation} disabled={isEStop}>Run</button>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="mobile-programming-controls">
-          {showEditorModal && (
-            <div className="modal-overlay" onClick={() => setShowEditorModal(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <button className="modal-close" onClick={() => setShowEditorModal(false)}>×</button>
-                <h2>Program Editor</h2>
-                {editorContent}
+  if (isMobile) {
+    return (
+      <div className="mobile-programming-controls" style={{ display: 'flex', gap: '10px', pointerEvents: 'auto' }}>
+        {showEditorModal && (
+          <div className="modal-overlay" onClick={() => setShowEditorModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setShowEditorModal(false)}>×</button>
+              <h2>Program Editor</h2>
+              {editorContent}
+              <div className="controls" style={{ marginTop: '1.5rem', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button className="btn primary" onClick={() => { loadAndReset(); setShowEditorModal(false); }}>Load & Reset</button>
+                <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
               </div>
             </div>
-          )}
-          <div className="controls" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
-            <button className="btn" onClick={() => setShowEditorModal(true)}>📝 Edit</button>
-            <button className="btn primary" onClick={loadAndReset}>Reset</button>
-            <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
-            {isRunning ? (
-              <button className="btn stop" onClick={stopSimulation}>Pause</button>
-            ) : (
-              <button className="btn run" onClick={runSimulation} disabled={isEStop}>Run</button>
-            )}
           </div>
+        )}
+        
+        <button 
+          className="btn" 
+          onClick={() => setShowEditorModal(true)} 
+          title="Edit Program"
+          style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: '#fff' }}
+        >
+          📝
+        </button>
+        {isRunning ? (
+          <button 
+            className="btn stop" 
+            onClick={stopSimulation} 
+            title="Pause Simulation"
+            style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+          >
+            ⏸
+          </button>
+        ) : (
+          <button 
+            className="btn run" 
+            onClick={runSimulation} 
+            disabled={isEStop} 
+            title="Run Simulation"
+            style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+          >
+            ▶️
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`programming-panel ${isCollapsed ? 'collapsed' : ''}`}>
+      <div
+        className="panel-header"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={!isCollapsed}
+        aria-label={isCollapsed ? 'Expand program execution' : 'Collapse program execution'}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
+      >
+        <h2>Program Execution</h2>
+        <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
+      </div>
+      
+      <div className="panel-content">
+        {editorContent}
+        <div className="controls">
+          <button className="btn primary" onClick={loadAndReset}>Load & Reset</button>
+          <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
+          {isRunning ? (
+            <button className="btn stop" onClick={stopSimulation}>Pause</button>
+          ) : (
+            <button className="btn run" onClick={runSimulation} disabled={isEStop}>Run</button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

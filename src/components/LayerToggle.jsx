@@ -142,7 +142,7 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
 
   if (isMobile) {
     return (
-      <div className="mobile-layer-controls">
+      <div className="mobile-layer-controls" style={{ pointerEvents: 'auto' }}>
         <button
           className="btn mobile-gear-btn"
           onClick={() => setShowModal(true)}
