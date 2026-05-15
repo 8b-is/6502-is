@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Chip3D from './components/Chip3D';
 import LayerToggle from './components/LayerToggle';
 import ProgrammingPanel from './components/ProgrammingPanel';
@@ -6,6 +6,7 @@ import { LAYER_INFO } from './utils/geometryBuilder';
 import { getInstructionExplanation } from './utils/instructionExplanations';
 import AboutModal from './components/AboutModal';
 import ExperienceModal from './components/ExperienceModal';
+import logo8b from './assets/8b-logo.png';
 import './index.css';
 
 function App() {
@@ -25,7 +26,8 @@ function App() {
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false);
   const [themeMode, setThemeMode] = useState(null);
   const [isEStop, setIsEStop] = useState(false);
-  
+  const [isGlitching, setIsGlitching] = useState(false);
+
   const [overlayConfig, setOverlayConfig] = useState({
     rotation: -90, // degrees
     scaleX: 95.0,
@@ -37,10 +39,24 @@ function App() {
     flipY: false
   });
 
+  useEffect(() => {
+    let timeoutId;
+    const scheduleGlitch = () => {
+      const delay = 2000 + Math.random() * 5000; // 5 to 20 seconds
+      timeoutId = setTimeout(() => {
+        setIsGlitching(true);
+        setTimeout(() => setIsGlitching(false), 100); // glitch duration
+        scheduleGlitch();
+      }, delay);
+    };
+    scheduleGlitch();
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   return (
     <div className={`app-container ${themeMode === 'safe' ? 'theme-safe' : ''}`}>
       {themeMode === null && <ExperienceModal onSelectMode={setThemeMode} />}
-      
+
       <div className="canvas-container">
         <Chip3D
           visibleLayers={visibleLayers}
@@ -53,27 +69,18 @@ function App() {
       </div>
       <div className="ui-overlay">
 
-        <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+        <header className="app-header">
           <div>
             <h1>Visual6502 <span>3D</span></h1>
-            <p className="app-subtitle">Modern WebGL Simulation</p>
+            <p className="app-subtitle">WebGL 6502 Simulation</p>
           </div>
-          
+
           <div style={{ display: 'flex', gap: '10px' }}>
-            <button 
-              className={`btn ${isEStop ? '' : 'stop'}`} 
+            <button
+              className={`btn ${isEStop ? '' : 'stop'}`}
               onClick={() => setIsEStop(!isEStop)}
-              style={{ 
-                background: isEStop ? '#ffaa00' : '#ff3333', 
-                color: '#fff', 
-                fontWeight: 'bold',
-                boxShadow: isEStop ? 'none' : '0 0 10px rgba(255,51,51,0.5)',
-                border: 'none',
-                padding: '10px 15px',
-                borderRadius: '8px'
-              }}
             >
-              {isEStop ? '⚠️ RELEASE E-STOP' : '🛑 E-STOP'}
+              {isEStop ? '⚠️' : '🛑'}
             </button>
             <button className="about-btn" onClick={() => setShowAbout(true)} aria-label="About 6502.is">
               <span className="about-btn-full">About 6502.is</span>
@@ -111,9 +118,11 @@ function App() {
                   <div className="instruction-text">
                     {machineState.fullInstruction || machineState.instruction}
                   </div>
-                  <div className="instruction-explanation">
-                    {getInstructionExplanation(machineState.fullInstruction || machineState.instruction)}
-                  </div>
+                  {visibleLayers.diagramOverlay > 0 && (
+                    <div className="instruction-explanation" style={{ fontSize: '0.5rem' }} >
+                      {getInstructionExplanation(machineState?.fullInstruction || machineState?.instruction)}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -121,8 +130,8 @@ function App() {
         )}
 
         <div className="right-panels" role="region" aria-label="Controls">
-          <ProgrammingPanel 
-            setSharedMachineState={setMachineState} 
+          <ProgrammingPanel
+            setSharedMachineState={setMachineState}
             themeMode={themeMode}
             isEStop={isEStop}
           />
@@ -145,6 +154,7 @@ function App() {
           className="watermark"
           aria-label="Brought to you by 8b.is"
         >
+          <img src={logo8b} alt="8b.is logo" className="logo-8b" />
           <span className="link-text">Brought to you by </span>
           <span className="shimmer-text">8b.is</span>
         </a>
@@ -152,7 +162,7 @@ function App() {
           href="https://github.com/8b-is/6502-is"
           target="_blank"
           rel="noopener noreferrer"
-          className="github-star"
+          className={`github-star ${isGlitching ? 'glitch-active' : ''}`}
           aria-label="Star this project on GitHub"
         >
           <svg height="20" width="20" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
