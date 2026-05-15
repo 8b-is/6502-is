@@ -200,6 +200,14 @@ export default function ProgrammingPanel({ setSharedMachineState, themeMode, isE
         >
           📝
         </button>
+        <button 
+          className="btn primary" 
+          onClick={() => loadAndReset()} 
+          title="Reset Simulation"
+          style={{ fontSize: '1.25rem', padding: '10px', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+        >
+          🔄
+        </button>
         {isRunning ? (
           <button 
             className="btn stop" 
