@@ -25,6 +25,7 @@ export default function ProgrammingPanel({ setSharedMachineState, themeMode, isE
   const runTimerRef = useRef(null);
   const lastFrameTimeRef = useRef(performance.now());
   const currentInstructionRef = useRef('BRK');
+  const prevLoadedLenRef = useRef(0);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
@@ -49,31 +50,35 @@ export default function ProgrammingPanel({ setSharedMachineState, themeMode, isE
     if (setSharedMachineState) setSharedMachineState(state);
   }, [setSharedMachineState]);
 
-  const loadAndReset = React.useCallback((codeToLoad = hexInput) => {
+  const loadAndReset = React.useCallback((codeToLoad) => {
     stopSimulation();
-    
-    // Parse hex input
-    const bytes = codeToLoad.replace(/[^0-9A-Fa-f]/g, ' ')
+
+    const source = typeof codeToLoad === 'string' ? codeToLoad : hexInput;
+    const bytes = source.replace(/[^0-9A-Fa-f]/g, ' ')
                           .trim()
-                          .split(' ')
+                          .split(/\s+/)
                           .map(b => parseInt(b, 16))
                           .filter(b => !isNaN(b));
-    
-    // Clear userCode and load new bytes
+
+    // Overwrite previously-loaded bytes with 0 so a shorter program doesn't leave a tail.
+    // loadProgram() skips `undefined` slots, so use explicit zeros.
     userCode.length = 0;
-    for (let i = 0; i < bytes.length; i++) {
-      userCode[i] = bytes[i];
+    const span = Math.max(bytes.length, prevLoadedLenRef.current);
+    for (let i = 0; i < span; i++) {
+      userCode[i] = i < bytes.length ? bytes[i] : 0;
     }
-    
+    prevLoadedLenRef.current = bytes.length;
+
     loadProgram();
     initChip();
     updateState();
-  }, [hexInput]);
+  }, [hexInput, updateState]);
 
   // Initialize chip once on mount
   useEffect(() => {
-    loadAndReset('A9 01 A2 00 E8 8A 9D 00 02 2A E0 FF D0 F6 CA 8A 9D 00 03 6A E0 00 D0 F6 4C 00 00');
+    loadAndReset(DEFAULT_PROGRAM);
     return () => stopSimulation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stepSimulation = () => {
@@ -250,7 +255,7 @@ export default function ProgrammingPanel({ setSharedMachineState, themeMode, isE
       <div className="panel-content">
         {editorContent}
         <div className="controls">
-          <button className="btn primary" onClick={loadAndReset}>Load & Reset</button>
+          <button className="btn primary" onClick={() => loadAndReset()}>Load & Reset</button>
           <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
           {isRunning ? (
             <button className="btn stop" onClick={stopSimulation}>Pause</button>
