@@ -4,11 +4,13 @@ import { LAYER_INFO } from '../utils/geometryBuilder';
 export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayConfig, setOverlayConfig, layerSpacing, setLayerSpacing }) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    if (window.innerWidth < 1024) {
-      setIsCollapsed(true);
-    }
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const toggleLayer = (layerId) => {
@@ -25,32 +27,19 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
     }));
   };
 
-  return (
-    <div className={`layer-toggle-panel ${isCollapsed ? 'collapsed' : ''}`}>
-      <div
-        className="panel-header"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        role="button"
-        tabIndex={0}
-        aria-expanded={!isCollapsed}
-        aria-label={isCollapsed ? 'Expand chip layers' : 'Collapse chip layers'}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
-      >
-        <h2>Chip Layers</h2>
-        <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
-      </div>
-      <div className="panel-content">
-        <div className="layer-list">
-          <label className="layer-item active" style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
-            <span className="layer-name" style={{ flex: '1', fontWeight: 'bold' }}>Z-Spacing Multiplier</span>
-            <input 
-              type="range" 
-              min="0" max="10" step="0.1"
-              value={layerSpacing} 
-              onChange={(e) => setLayerSpacing(parseFloat(e.target.value))} 
-              style={{ width: '80px', marginRight: '10px' }}
-            />
-          </label>
+  const layerContent = (
+    <div className="panel-content">
+      <div className="layer-list">
+        <label className="layer-item active" style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
+          <span className="layer-name" style={{ flex: '1', fontWeight: 'bold' }}>Z-Spacing Multiplier</span>
+          <input 
+            type="range" 
+            min="0" max="10" step="0.1"
+            value={layerSpacing} 
+            onChange={(e) => setLayerSpacing(parseFloat(e.target.value))} 
+            style={{ width: '80px', marginRight: '10px' }}
+          />
+        </label>
         {Object.entries(LAYER_INFO).map(([id, info]) => (
           <label key={id} className={`layer-item ${visibleLayers[id] > 0 ? 'active' : ''}`}>
             <div className="layer-color-indicator" style={{ backgroundColor: info.color }}></div>
@@ -98,7 +87,7 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
                 <div className="config-row">
                   <label>Glass Op</label>
                   <input type="range" min="0" max="1" step="0.05" value={overlayConfig.glassOpacity ?? 0.85} onChange={e => setOverlayConfig({...overlayConfig, glassOpacity: parseFloat(e.target.value)})} />
-                  <span>{(overlayConfig.glassOpacity ?? 0.85).toFixed(2)}</span>
+                  <span>{overlayConfig.glassOpacity?.toFixed(2) ?? '0.85'}</span>
                 </div>
                 <div className="config-row">
                   <label>Scale X</label>
@@ -149,6 +138,47 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
           Toggle All
         </button>
       </div>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="mobile-layer-controls">
+        <button 
+          className="btn mobile-gear-btn" 
+          onClick={() => setShowModal(true)}
+          title="Layer Settings"
+          style={{ fontSize: '1.5rem', padding: '8px 12px', borderRadius: '12px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: '#fff', cursor: 'pointer' }}
+        >
+          ⚙️
+        </button>
+        {showModal && (
+          <div className="modal-overlay" onClick={() => setShowModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
+              <h2>Chip Layers</h2>
+              {layerContent}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`layer-toggle-panel ${isCollapsed ? 'collapsed' : ''}`}>
+      <div
+        className="panel-header"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={!isCollapsed}
+        aria-label={isCollapsed ? 'Expand chip layers' : 'Collapse chip layers'}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
+      >
+        <h2>Chip Layers</h2>
+        <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
+      </div>
+      {layerContent}
     </div>
   );
 }

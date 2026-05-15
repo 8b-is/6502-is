@@ -10,21 +10,26 @@ import {
 import { getInstructionExplanation } from '../utils/instructionExplanations';
 import { disassemble } from '../utils/disassembler';
 
+const DEFAULT_PROGRAM = 'A9 01 A2 00 E8 8A 9D 00 02 2A E0 FF D0 F6 CA 8A 9D 00 03 6A E0 00 D0 F6 4C 00 00';
+
 export default function ProgrammingPanel({ setSharedMachineState }) {
   const [machineState, setMachineState] = useState(null);
-  const [hexInput, setHexInput] = useState('A9 01 A2 00 E8 8A 9D 00 02 2A E0 FF D0 F6 CA 8A 9D 00 03 6A E0 00 D0 F6 4C 00 00');
+  const [hexInput, setHexInput] = useState(DEFAULT_PROGRAM);
+  const [clockHz, setClockHz] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
-  const [clockHz, setClockHz] = useState(1); // Default 1 Hz
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [showEditorModal, setShowEditorModal] = useState(false);
+
   const clockHzRef = useRef(1);
   const runTimerRef = useRef(null);
   const lastFrameTimeRef = useRef(performance.now());
   const currentInstructionRef = useRef('BRK');
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   useEffect(() => {
-    if (window.innerWidth < 1024) {
-      setIsCollapsed(true);
-    }
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   const updateState = React.useCallback(() => {
@@ -131,30 +136,16 @@ export default function ProgrammingPanel({ setSharedMachineState }) {
 
   const toHex = (num, padding = 2) => num !== undefined ? num.toString(16).toUpperCase().padStart(padding, '0') : '00';
 
-  return (
-    <div className={`programming-panel ${isCollapsed ? 'collapsed' : ''}`}>
-      <div
-        className="panel-header"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        role="button"
-        tabIndex={0}
-        aria-expanded={!isCollapsed}
-        aria-label={isCollapsed ? 'Expand program execution' : 'Collapse program execution'}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
-      >
-        <h2>Program Execution</h2>
-        <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
+  const editorContent = (
+    <>
+      <div className="hex-editor">
+        <label>Machine Code (Hex):</label>
+        <textarea 
+          value={hexInput}
+          onChange={(e) => setHexInput(e.target.value)}
+          spellCheck="false"
+        />
       </div>
-      
-      <div className="panel-content">
-        <div className="hex-editor">
-          <label>Machine Code (Hex):</label>
-          <textarea 
-            value={hexInput}
-            onChange={(e) => setHexInput(e.target.value)}
-            spellCheck="false"
-          />
-        </div>
 
       <div className="speed-control" style={{marginTop: '10px', marginBottom: '10px'}}>
         <label>Clock Speed: {clockHz} Hz</label>
@@ -173,20 +164,65 @@ export default function ProgrammingPanel({ setSharedMachineState }) {
         />
         <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#666'}}>
           <span>1 Hz</span>
-          <span>60 Hz</span>
+          <span>120 Hz</span>
         </div>
       </div>
+    </>
+  );
 
-        <div className="controls">
-          <button className="btn primary" onClick={loadAndReset}>Load & Reset</button>
-          <button className="btn" onClick={stepSimulation} disabled={isRunning}>Step (Clock)</button>
-          {isRunning ? (
-            <button className="btn stop" onClick={stopSimulation}>Pause</button>
-          ) : (
-            <button className="btn run" onClick={runSimulation}>Run</button>
-          )}
+  return (
+    <div className={`programming-panel ${isCollapsed && !isMobile ? 'collapsed' : ''}`}>
+      {!isMobile && (
+        <div
+          className="panel-header"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          role="button"
+          tabIndex={0}
+          aria-expanded={!isCollapsed}
+          aria-label={isCollapsed ? 'Expand program execution' : 'Collapse program execution'}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
+        >
+          <h2>Program Execution</h2>
+          <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
         </div>
-      </div>
+      )}
+      
+      {!isMobile ? (
+        <div className="panel-content">
+          {editorContent}
+          <div className="controls">
+            <button className="btn primary" onClick={loadAndReset}>Load & Reset</button>
+            <button className="btn" onClick={stepSimulation} disabled={isRunning}>Step</button>
+            {isRunning ? (
+              <button className="btn stop" onClick={stopSimulation}>Pause</button>
+            ) : (
+              <button className="btn run" onClick={runSimulation}>Run</button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="mobile-programming-controls">
+          {showEditorModal && (
+            <div className="modal-overlay" onClick={() => setShowEditorModal(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <button className="modal-close" onClick={() => setShowEditorModal(false)}>×</button>
+                <h2>Program Editor</h2>
+                {editorContent}
+              </div>
+            </div>
+          )}
+          <div className="controls" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+            <button className="btn" onClick={() => setShowEditorModal(true)}>📝 Edit</button>
+            <button className="btn primary" onClick={loadAndReset}>Reset</button>
+            <button className="btn" onClick={stepSimulation} disabled={isRunning}>Step</button>
+            {isRunning ? (
+              <button className="btn stop" onClick={stopSimulation}>Pause</button>
+            ) : (
+              <button className="btn run" onClick={runSimulation}>Run</button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
