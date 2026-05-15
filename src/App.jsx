@@ -105,7 +105,7 @@ function App() {
           Brought to you by <span className="shimmer-text">8b.is</span>
         </a>
         <a
-          href="https://github.com/aye-is/6502-3D"
+          href="https://github.com/8b-is/6502-is"
           target="_blank"
           rel="noopener noreferrer"
           className="github-star"

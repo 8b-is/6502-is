@@ -38,7 +38,7 @@ The project is built with Vite for lightning-fast HMR and optimized builds.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/aye-is/6502-3D.git
+   git clone https://github.com/8b-is/6502-is.git
    cd 6502-3D
    ```
 2. **Install dependencies:**
