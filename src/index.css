@@ -868,16 +868,23 @@ body {
 
 
 /* Watermark */
-.watermark {
+.bottom-left-links {
   position: absolute;
   bottom: 20px;
   left: 20px;
-  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  gap: 15px;
+  z-index: 1000;
+  pointer-events: auto;
+}
+
+.watermark, .github-star {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 0.9rem;
   font-weight: 500;
-  pointer-events: auto;
-  z-index: 1000;
-  user-select: none;
   text-decoration: none;
   background: rgba(0, 0, 0, 0.5);
   padding: 8px 16px;
@@ -888,11 +895,12 @@ body {
   transition: all 0.3s ease;
 }
 
-.watermark:hover {
+.watermark:hover, .github-star:hover {
   background: rgba(0, 0, 0, 0.8);
   border-color: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .shimmer-text {

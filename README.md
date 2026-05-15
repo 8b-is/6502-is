@@ -1,6 +1,7 @@
 <div align="center">
   <h1>🕹️ Visual6502 <em>3D</em></h1>
   <p><strong>A Modern WebGL Interactive Simulation of the Iconic MOS 6502 Microprocessor</strong></p>
+  <h3>🌐 <a href="https://3d.6502.is/">Live Demo at 3d.6502.is</a></h3>
 
   <p>
     <a href="https://8b.is">
