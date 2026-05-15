@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  visual6502-3d:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: visual6502-3d
+    ports:
+      - "80:80"
+    restart: unless-stopped
