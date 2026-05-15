@@ -2,6 +2,8 @@ version: '3.8'
 
 services:
   visual6502-3d:
+    ports:
+      - "${PORT:-6502}:80"
     build:
       context: .
       dockerfile: Dockerfile
