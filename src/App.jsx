@@ -71,7 +71,7 @@ function App() {
 
         <header className="app-header">
           <div>
-            <h1>Visual6502 <span>3D</span></h1>
+            <h1>6502.is<span>3D</span></h1>
             <p className="app-subtitle">WebGL 6502 Simulation</p>
           </div>
 

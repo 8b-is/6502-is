@@ -231,6 +231,7 @@ input[type="range"]::-moz-range-thumb {
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
   transition: transform 0.4s, opacity 0.4s;
+  pointer-events: none;
 }
 
 .btn:active::after,
@@ -375,6 +376,7 @@ input[type="range"]::-moz-range-thumb {
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), transparent);
   opacity: 0;
   transition: opacity var(--transition);
+  pointer-events: none;
 }
 
 .layer-item:hover {
