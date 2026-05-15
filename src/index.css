@@ -544,7 +544,7 @@ input[type="range"]::-moz-range-thumb {
 
 /* Dashboard */
 .top-dashboard {
-  grid-column: ;
+  grid-column: 2;
   grid-row: 1;
   align-self: flex-start;
   justify-self: center;
@@ -1120,6 +1120,10 @@ input[type="range"]::-moz-range-thumb {
 
 .collapsed .collapse-btn {
   transform: rotate(-90deg);
+}
+
+.dashboard-content {
+  display: none;
 }
 
 /* Theme Safe Overrides */
