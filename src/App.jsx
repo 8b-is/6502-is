@@ -35,18 +35,6 @@ function App() {
 
   return (
     <div className="app-container">
-
-      {/* <!-- Google tag (gtag.js) --> */}
-      <script async src="https://www.googletagmanager.com/gtag/js?id=G-HVB3SKV9JD"></script>
-      <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag() {
-          dataLayer.push(arguments)
-        }
-        gtag('js', new Date());
-        gtag('config', 'G-HVB3SKV9JD');
-      </script>
-
       <div className="canvas-container">
         <Chip3D
           visibleLayers={visibleLayers}
