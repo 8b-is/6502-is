@@ -27,9 +27,17 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
 
   return (
     <div className={`layer-toggle-panel ${isCollapsed ? 'collapsed' : ''}`}>
-      <div className="panel-header" onClick={() => setIsCollapsed(!isCollapsed)}>
+      <div
+        className="panel-header"
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        role="button"
+        tabIndex={0}
+        aria-expanded={!isCollapsed}
+        aria-label={isCollapsed ? 'Expand chip layers' : 'Collapse chip layers'}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
+      >
         <h2>Chip Layers</h2>
-        <button className="collapse-btn">▼</button>
+        <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
       </div>
       <div className="panel-content">
         <div className="layer-list">

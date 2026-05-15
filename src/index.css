@@ -1024,13 +1024,15 @@ input[type="range"]::-moz-range-thumb {
     right: 0;
     bottom: 0;
     width: 100%;
-    max-height: 70dvh;
+    max-height: 75dvh;
     align-items: stretch;
     gap: 0.5rem;
     padding: 0 0.6rem;
     padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
     pointer-events: none;
-    overflow: visible;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     z-index: 30;
   }
   .right-panels > * {
