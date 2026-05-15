@@ -5,6 +5,7 @@ import ProgrammingPanel from './components/ProgrammingPanel';
 import { LAYER_INFO } from './utils/geometryBuilder';
 import { getInstructionExplanation } from './utils/instructionExplanations';
 import AboutModal from './components/AboutModal';
+import ExperienceModal from './components/ExperienceModal';
 import './index.css';
 
 function App() {
@@ -22,6 +23,10 @@ function App() {
   const [machineState, setMachineState] = useState(null);
   const [showAbout, setShowAbout] = useState(false);
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false);
+  const [themeMode, setThemeMode] = useState(null);
+  const [isEStop, setIsEStop] = useState(false);
+  const [flipChip, setFlipChip] = useState(false);
+  
   const [overlayConfig, setOverlayConfig] = useState({
     rotation: -90, // degrees
     scaleX: 95.0,
@@ -34,24 +39,56 @@ function App() {
   });
 
   return (
-    <div className="app-container">
+    <div className={`app-container ${themeMode === 'safe' ? 'theme-safe' : ''}`}>
+      {themeMode === null && <ExperienceModal onSelectMode={setThemeMode} />}
+      
       <div className="canvas-container">
         <Chip3D
           visibleLayers={visibleLayers}
           machineState={machineState}
           overlayConfig={overlayConfig}
           layerSpacing={layerSpacing}
+          themeMode={themeMode}
+          isEStop={isEStop}
+          flipChip={flipChip}
         />
       </div>
       <div className="ui-overlay">
 
-        <header className="app-header">
-          <h1>Visual6502 <span>3D</span></h1>
-          <p className="app-subtitle">Modern WebGL Simulation</p>
-          <button className="about-btn" onClick={() => setShowAbout(true)} aria-label="About 6502.is">
-            <span className="about-btn-full">About 6502.is</span>
-            <span className="about-btn-short" aria-hidden="true">?</span>
-          </button>
+        <header className="app-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+          <div>
+            <h1>Visual6502 <span>3D</span></h1>
+            <p className="app-subtitle">Modern WebGL Simulation</p>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              className="btn" 
+              onClick={() => setFlipChip(!flipChip)}
+              style={{ background: 'var(--glass-bg)', color: '#fff', padding: '10px 15px', borderRadius: '8px' }}
+            >
+              🔄 Flip
+            </button>
+            <button 
+              className={`btn ${isEStop ? '' : 'stop'}`} 
+              onClick={() => setIsEStop(!isEStop)}
+              style={{ 
+                background: isEStop ? '#ffaa00' : '#ff3333', 
+                color: '#fff', 
+                fontWeight: 'bold',
+                boxShadow: isEStop ? 'none' : '0 0 10px rgba(255,51,51,0.5)',
+                border: 'none',
+                padding: '10px 15px',
+                borderRadius: '8px'
+              }}
+            >
+              {isEStop ? '⚠️ RELEASE E-STOP' : '🛑 E-STOP'}
+            </button>
+            <button className="about-btn" onClick={() => setShowAbout(true)} aria-label="About 6502.is">
+              <span className="about-btn-full">About 6502.is</span>
+              <span className="about-btn-short" aria-hidden="true">?</span>
+            </button>
+          </div>
         </header>
 
         {machineState && (
@@ -93,7 +130,11 @@ function App() {
         )}
 
         <div className="right-panels" role="region" aria-label="Controls">
-          <ProgrammingPanel setSharedMachineState={setMachineState} />
+          <ProgrammingPanel 
+            setSharedMachineState={setMachineState} 
+            themeMode={themeMode}
+            isEStop={isEStop}
+          />
           <LayerToggle
             visibleLayers={visibleLayers}
             setVisibleLayers={setVisibleLayers}

@@ -12,7 +12,7 @@ import { disassemble } from '../utils/disassembler';
 
 const DEFAULT_PROGRAM = 'A9 01 A2 00 E8 8A 9D 00 02 2A E0 FF D0 F6 CA 8A 9D 00 03 6A E0 00 D0 F6 4C 00 00';
 
-export default function ProgrammingPanel({ setSharedMachineState }) {
+export default function ProgrammingPanel({ setSharedMachineState, themeMode, isEStop }) {
   const [machineState, setMachineState] = useState(null);
   const [hexInput, setHexInput] = useState(DEFAULT_PROGRAM);
   const [clockHz, setClockHz] = useState(1);
@@ -31,6 +31,11 @@ export default function ProgrammingPanel({ setSharedMachineState }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+  useEffect(() => {
+    if (isEStop && isRunning) {
+      stopSimulation();
+    }
+  }, [isEStop, isRunning]);
 
   const updateState = React.useCallback(() => {
     const state = getMachineState();
@@ -192,11 +197,11 @@ export default function ProgrammingPanel({ setSharedMachineState }) {
           {editorContent}
           <div className="controls">
             <button className="btn primary" onClick={loadAndReset}>Load & Reset</button>
-            <button className="btn" onClick={stepSimulation} disabled={isRunning}>Step</button>
+            <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
             {isRunning ? (
               <button className="btn stop" onClick={stopSimulation}>Pause</button>
             ) : (
-              <button className="btn run" onClick={runSimulation}>Run</button>
+              <button className="btn run" onClick={runSimulation} disabled={isEStop}>Run</button>
             )}
           </div>
         </div>
@@ -214,11 +219,11 @@ export default function ProgrammingPanel({ setSharedMachineState }) {
           <div className="controls" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
             <button className="btn" onClick={() => setShowEditorModal(true)}>📝 Edit</button>
             <button className="btn primary" onClick={loadAndReset}>Reset</button>
-            <button className="btn" onClick={stepSimulation} disabled={isRunning}>Step</button>
+            <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
             {isRunning ? (
               <button className="btn stop" onClick={stopSimulation}>Pause</button>
             ) : (
-              <button className="btn run" onClick={runSimulation}>Run</button>
+              <button className="btn run" onClick={runSimulation} disabled={isEStop}>Run</button>
             )}
           </div>
         </div>

@@ -7,9 +7,11 @@ import { nodes, toggleNode, ngnd, npwr } from '../simulation/engine';
 import { padPositions } from '../data/padPositions';
 import * as THREE from 'three';
 
-function ShaderUpdater({ uniformsRef }) {
-  useFrame((state) => {
-    uniformsRef.current.uTime.value = performance.now() / 1000.0;
+function ShaderUpdater({ uniformsRef, isEStop }) {
+  useFrame((state, delta) => {
+    if (!isEStop) {
+      uniformsRef.current.uTime.value += delta;
+    }
   });
   return null;
 }
@@ -87,7 +89,7 @@ function PlexiglassOverlay({ visible, config }) {
   );
 }
 
-export default function Chip3D({ visibleLayers, machineState, overlayConfig, layerSpacing = 1.0 }) {
+export default function Chip3D({ visibleLayers, machineState, overlayConfig, layerSpacing = 1.0, themeMode, isEStop, flipChip }) {
   const [geometries, setGeometries] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -103,8 +105,13 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
     uTime: { value: 0 },
     uSelectedNode: { value: -1.0 },
     uClickPos: { value: new THREE.Vector3() },
-    uClickTime: { value: -1000.0 }
+    uClickTime: { value: -1000.0 },
+    uSafeMode: { value: 0.0 }
   });
+
+  useEffect(() => {
+    uniformsRef.current.uSafeMode.value = themeMode === 'safe' ? 1.0 : 0.0;
+  }, [themeMode]);
 
   useEffect(() => {
     setTimeout(() => {
@@ -154,7 +161,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
         traceTextureRef.current.needsUpdate = true;
       }}
     >
-      <color attach="background" args={['#050508']} />
+      <color attach="background" args={[themeMode === 'safe' ? '#e0e0e3' : '#050508']} />
 
       <ambientLight intensity={0.4} />
       <directionalLight position={[10, 20, 30]} intensity={1.5} />
@@ -162,7 +169,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
 
       <Environment files="/potsdamer_platz_1k.hdr" />
 
-      <ShaderUpdater uniformsRef={uniformsRef} />
+      <ShaderUpdater uniformsRef={uniformsRef} isEStop={isEStop} />
 
       {loading && (
         <mesh>
@@ -173,7 +180,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
 
       {!loading && (
         <Center>
-          <group rotation={[-Math.PI / 2, 0, 0]}>
+          <group rotation={[flipChip ? Math.PI / 2 : -Math.PI / 2, 0, 0]}>
             {Object.keys(geometries).map(layerId => {
               if (!visibleLayers[layerId] || visibleLayers[layerId] <= 0 || !geometries[layerId]) return null;
 
@@ -261,6 +268,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                       shader.uniforms.uSelectedNode = uniformsRef.current.uSelectedNode;
                       shader.uniforms.uClickPos = uniformsRef.current.uClickPos;
                       shader.uniforms.uClickTime = uniformsRef.current.uClickTime;
+                      shader.uniforms.uSafeMode = uniformsRef.current.uSafeMode;
                       
                       shader.vertexShader = `
                         attribute float aNodeId;
@@ -278,8 +286,15 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                         vec4 traceState = texture2D(tracePathTexture, vec2(vNodeId / 2048.0, 0.5));
                         
                         bool isTraced = traceState.r > 0.5;
+                        bool isSafeMode = uSafeMode > 0.5;
                         
-                        if (isTraced) {
+                        if (isSafeMode) {
+                          if (nodeState.r > 0.5) {
+                            gl_FragColor = vec4(gl_FragColor.rgb * 1.5, gl_FragColor.a);
+                          } else {
+                            gl_FragColor = vec4(gl_FragColor.rgb * 0.4, gl_FragColor.a);
+                          }
+                        } else if (isTraced) {
                           float timeSinceClick = mod(max(0.0, uTime - uClickTime), 4.0);
                           
                           // Manhattan distance perfectly maps to orthogonal wire routing
@@ -342,6 +357,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                         uniform float uSelectedNode;
                         uniform vec3 uClickPos;
                         uniform float uClickTime;
+                        uniform float uSafeMode;
                         varying float vNodeId;
                         varying vec3 vPos;
                         varying vec3 vWorldPos;

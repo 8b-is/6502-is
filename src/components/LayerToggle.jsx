@@ -46,7 +46,7 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
             <input 
               type="range" 
               min="0" max="1" step="0.05"
-              value={visibleLayers[id] ?? 1.0} 
+              value={visibleLayers[id] ?? 0.5} 
               onChange={(e) => setLayerOpacity(id, parseFloat(e.target.value))} 
               style={{ width: '80px', marginRight: '10px' }}
             />
