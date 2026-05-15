@@ -20,13 +20,17 @@ body {
   background-color: var(--bg-color);
   color: var(--text-color);
   overflow: hidden;
+  overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .app-container {
   position: relative;
   width: 100vw;
+  width: 100dvw;
   height: 100vh;
+  height: 100dvh;
 }
 
 .canvas-container {
@@ -36,6 +40,7 @@ body {
   width: 100%;
   height: 100%;
   z-index: 1;
+  touch-action: none;
 }
 
 .ui-overlay {
@@ -49,9 +54,45 @@ body {
   grid-template-columns: auto 1fr auto;
   grid-template-rows: auto 1fr;
   padding: 1rem;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
   gap: 1.5rem;
   z-index: 10;
 }
+
+/* Touch-friendly range thumbs across the app */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  height: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  border: 2px solid #fff;
+  box-shadow: 0 0 6px rgba(74, 158, 255, 0.6);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  border: 2px solid #fff;
+  box-shadow: 0 0 6px rgba(74, 158, 255, 0.6);
+  cursor: pointer;
+}
+
+/* Hide the abbreviated "?" version of the About button on desktop */
+.about-btn-short { display: none; }
 
 .app-header {
   pointer-events: auto;
@@ -792,79 +833,7 @@ body {
   display: none;
 }
 
-/* Responsive Overrides */
-@media (max-width: 1024px) {
-  .app-header {
-    padding: 0.5rem 1rem;
-  }
-  .app-header h1 {
-    font-size: 1.2rem;
-  }
-  .app-header p {
-    font-size: 0.75rem;
-  }
-  
-  .layer-toggle-panel {
-    width: 240px;
-    padding: 0.8rem;
-  }
-  
-  .layer-item label, .config-row label {
-    font-size: 0.8rem;
-  }
-  
-  
-  .programming-panel {
-    padding: 0.8rem;
-  }
-  
-  .panel-header h2 {
-    font-size: 1rem;
-  }
-  
-  .code-display {
-    padding: 0.5rem;
-    font-size: 0.75rem;
-    min-height: 40px;
-  }
-  
-  .control-buttons {
-    gap: 0.5rem;
-  }
-  
-  .btn {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.8rem;
-  }
-  
-  .top-dashboard {
-    top: 90px;
-    padding: 0.5rem 1rem;
-    width: 95%;
-    flex-direction: column;
-  }
-  
-  .dashboard-content {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .dashboard-registers {
-    border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-right: 0;
-    padding-bottom: 0.5rem;
-    margin-bottom: 0.5rem;
-    flex-wrap: wrap;
-    justify-content: center;
-    font-size: 0.85rem;
-  }
-  
-  .dashboard-instruction {
-    padding-left: 0;
-    font-size: 0.85rem;
-  }
-}
+/* === Responsive overrides === */
 
 
 /* Watermark */
@@ -950,30 +919,333 @@ body {
   flex-shrink: 0;
 }
 
-@media (max-width: 1500px) {
+/* Small desktop / large tablet — keep three-column layout but tighten */
+@media (max-width: 1280px) {
+  .ui-overlay {
+    gap: 1rem;
+    padding: 0.75rem;
+  }
+  .right-panels > * {
+    width: 280px !important;
+  }
+  .layer-toggle-panel,
+  .programming-panel {
+    padding: 1rem;
+  }
+  .app-header {
+    padding: 1rem 1.25rem;
+  }
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Tablet portrait + landscape phones — switch to bottom-sheet pattern */
+@media (max-width: 900px) {
   .ui-overlay {
     grid-template-columns: 1fr;
     grid-template-rows: auto auto 1fr;
-    overflow-y: auto;
+    padding: 0.6rem;
+    padding-top: max(0.6rem, env(safe-area-inset-top));
+    gap: 0.6rem;
+    overflow: visible;
   }
+
   .app-header {
     grid-column: 1;
     grid-row: 1;
+    padding: 0.6rem 0.9rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+    gap: 0.15rem 0.75rem;
+    align-items: center;
   }
+  .app-header h1 {
+    font-size: 1.15rem;
+    margin-bottom: 0;
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .app-subtitle {
+    grid-column: 1;
+    grid-row: 2;
+    font-size: 0.7rem;
+  }
+  .about-btn {
+    margin-top: 0;
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+  }
+
   .top-dashboard {
     grid-column: 1;
     grid-row: 2;
     justify-self: stretch;
+    padding: 0.5rem 0.75rem;
+    border-radius: 10px;
   }
+  .dashboard-content {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .dashboard-registers {
+    border-right: none;
+    padding-right: 0;
+    gap: 0.7rem;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+  .dashboard-instruction {
+    flex-direction: column;
+    align-items: flex-start;
+    padding-left: 0;
+    gap: 0.25rem;
+    width: 100%;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 0.4rem;
+  }
+  .dashboard-instruction .instruction-text {
+    font-size: 1.1rem;
+  }
+  .dashboard-instruction .instruction-explanation {
+    white-space: normal;
+    max-width: 100%;
+    font-size: 0.8rem;
+  }
+
+  /* Right panels become a bottom-anchored sheet stack */
   .right-panels {
     grid-column: 1;
     grid-row: 3;
-    justify-self: stretch;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
     width: 100%;
-    align-items: center;
+    max-height: 70dvh;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0 0.6rem;
+    padding-bottom: max(0.6rem, env(safe-area-inset-bottom));
+    pointer-events: none;
+    overflow: visible;
+    z-index: 30;
   }
   .right-panels > * {
+    pointer-events: auto;
     width: 100% !important;
-    max-width: 400px;
+    max-width: 100%;
+    margin: 0 auto;
   }
+
+  .layer-toggle-panel,
+  .programming-panel {
+    resize: none;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+    max-height: 55dvh;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .panel-header {
+    margin-bottom: 0.6rem;
+    padding: 0.25rem 0;
+  }
+  .panel-header h2 {
+    font-size: 1rem;
+  }
+  .collapse-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  /* Bottom links float above the sheets when sheets are collapsed */
+  .bottom-left-links {
+    bottom: auto;
+    top: max(0.6rem, env(safe-area-inset-top));
+    right: max(0.6rem, env(safe-area-inset-right));
+    left: auto;
+    flex-direction: row;
+    gap: 6px;
+    z-index: 11;
+  }
+  .watermark, .github-star {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Phones — abbreviate aggressively */
+@media (max-width: 600px) {
+  .app-header h1 {
+    font-size: 1rem;
+  }
+  .app-subtitle {
+    display: none;
+  }
+  .about-btn-full { display: none; }
+  .about-btn-short {
+    display: inline-block;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1;
+  }
+  .about-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .top-dashboard {
+    padding: 0.4rem 0.6rem;
+  }
+  .dashboard-registers {
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    flex-wrap: wrap;
+  }
+  .dashboard-item {
+    font-size: 0.95rem;
+  }
+  .dashboard-item.flags {
+    flex-basis: 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+  }
+  .dashboard-instruction .instruction-explanation {
+    display: none;
+  }
+
+  .layer-toggle-panel,
+  .programming-panel {
+    padding: 0.7rem 0.8rem;
+    max-height: 50dvh;
+  }
+  .hex-editor textarea {
+    font-size: 0.85rem;
+    min-height: 60px;
+  }
+  .controls {
+    flex-wrap: wrap;
+  }
+  .controls .btn {
+    flex: 1 1 30%;
+    min-height: 40px;
+    padding: 0.55rem;
+    font-size: 0.85rem;
+  }
+
+  /* Bottom-left links → icon-only chips, anchored top-right */
+  .link-text {
+    display: none;
+  }
+  .bottom-left-links {
+    gap: 6px;
+  }
+  .watermark, .github-star {
+    padding: 6px 8px;
+    border-radius: 999px;
+  }
+  .shimmer-text {
+    font-size: 0.95rem;
+  }
+
+  /* Modal becomes a near-full-height sheet */
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: 1.25rem 1rem;
+    overflow-y: auto;
+  }
+  .modal-content h2 {
+    font-size: 1.4rem;
+  }
+  .modal-content p {
+    font-size: 0.95rem;
+  }
+  .modal-close {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+/* Very narrow phones */
+@media (max-width: 380px) {
+  .ui-overlay {
+    padding: 0.4rem;
+  }
+  .app-header {
+    padding: 0.5rem 0.7rem;
+  }
+  .app-header h1 {
+    font-size: 0.9rem;
+    gap: 0.3rem;
+  }
+  .dashboard-registers {
+    font-size: 0.78rem;
+    gap: 0.4rem;
+  }
+  .dashboard-item {
+    font-size: 0.85rem;
+  }
+  .layer-toggle-panel,
+  .programming-panel {
+    padding: 0.6rem 0.7rem;
+    max-height: 45dvh;
+  }
+  .panel-header h2 {
+    font-size: 0.9rem;
+  }
+}
+
+/* Landscape phones — short viewport, sheets must be compact */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+  .right-panels {
+    max-height: 80dvh;
+  }
+  .layer-toggle-panel,
+  .programming-panel {
+    max-height: 65dvh;
+  }
+  .top-dashboard {
+    padding: 0.3rem 0.6rem;
+  }
+  .dashboard-content {
+    flex-direction: row;
+  }
+  .dashboard-instruction {
+    border-top: none;
+    border-left: 1px solid rgba(255,255,255,0.08);
+    padding-top: 0;
+    padding-left: 0.6rem;
+  }
+}
+
+/* Reduced motion — disable entrance animations */
+@media (prefers-reduced-motion: reduce) {
+  .app-header,
+  .top-dashboard,
+  .layer-toggle-panel,
+  .programming-panel,
+  .modal-content,
+  .modal-overlay,
+  .shimmer-text,
+  .hologram-panel {
+    animation: none !important;
+  }
+  * { transition-duration: 0.01ms !important; }
 }
