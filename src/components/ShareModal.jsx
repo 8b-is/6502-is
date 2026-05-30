@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function ShareModal({ onClose }) {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [screenshotUrl, setScreenshotUrl] = useState(null);
+  const [screenshotBlob, setScreenshotBlob] = useState(null);
 
   // Dynamically determine the URL to share.
   // If we are on localhost/dev server, fallback to the production URL.
@@ -18,6 +20,23 @@ export default function ShareModal({ onClose }) {
     linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
     reddit: `https://reddit.com/submit?url=${encodeURIComponent(shareUrl)}&title=${encodeURIComponent(shareText)}`
   };
+
+  useEffect(() => {
+    // Capture the WebGL canvas when the modal mounts
+    const canvas = document.querySelector('canvas');
+    if (canvas) {
+      try {
+        const dataUrl = canvas.toDataURL('image/png');
+        setScreenshotUrl(dataUrl);
+
+        canvas.toBlob((blob) => {
+          setScreenshotBlob(blob);
+        }, 'image/png');
+      } catch (err) {
+        console.error('Error capturing WebGL canvas:', err);
+      }
+    }
+  }, []);
 
   const handleCopyLink = async () => {
     try {
@@ -41,6 +60,37 @@ export default function ShareModal({ onClose }) {
     }
   };
 
+  const handleCopyImage = async () => {
+    if (!screenshotBlob) {
+      setToastMessage('Image capture still in progress...');
+      triggerToast();
+      return;
+    }
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [screenshotBlob.type]: screenshotBlob
+        })
+      ]);
+      setToastMessage('Screenshot copied! Paste it in your post 📋');
+      triggerToast();
+    } catch (err) {
+      console.error('Failed to copy image to clipboard: ', err);
+      setToastMessage('Clipboard copy blocked. Try Downloading the image!');
+      triggerToast();
+    }
+  };
+
+  const handleDownloadImage = () => {
+    if (!screenshotUrl) return;
+    const link = document.createElement('a');
+    link.download = '6502-simulation-view.png';
+    link.href = screenshotUrl;
+    link.click();
+    setToastMessage('Screenshot downloaded! 💾');
+    triggerToast();
+  };
+
   const triggerToast = () => {
     setShowToast(true);
     setTimeout(() => {
@@ -51,11 +101,21 @@ export default function ShareModal({ onClose }) {
   const handleNativeShare = async () => {
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: '6502.is 3D',
-          text: 'WebGL 6502 Simulation - observe computing at its absolute core.',
+        const shareData = {
+          title: '6502.is 3D View',
+          text: 'Check out the active WebGL state of this 6502 microprocessor!',
           url: shareUrl,
-        });
+        };
+
+        // If screenshot is ready, check if we can share files
+        if (screenshotBlob) {
+          const file = new File([screenshotBlob], '6502-chip-view.png', { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            shareData.files = [file];
+          }
+        }
+
+        await navigator.share(shareData);
       } catch (err) {
         if (err.name !== 'AbortError') {
           console.error('Web Share failed:', err);
@@ -74,6 +134,21 @@ export default function ShareModal({ onClose }) {
         <p>
           Spread the word about the 3D WebGL 6502 Simulation! Invite others to observe computing at its absolute core.
         </p>
+
+        {/* Live Chip Snapshot Preview */}
+        {screenshotUrl && (
+          <div className="screenshot-preview-container">
+            <img src={screenshotUrl} alt="Current chip state simulation view" className="screenshot-preview" />
+            <div className="screenshot-actions">
+              <button onClick={handleCopyImage} className="btn primary screenshot-action-btn" title="Copy screenshot to clipboard">
+                📋 Copy Image
+              </button>
+              <button onClick={handleDownloadImage} className="btn screenshot-action-btn" title="Download screenshot as PNG">
+                💾 Download PNG
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="share-grid">
           {/* X (formerly Twitter) */}

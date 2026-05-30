@@ -151,7 +151,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
     <Canvas
       camera={{ position: [0, 40, 60], fov: 45 }}
       dpr={[1, 1.5]}
-      gl={{ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' }}
+      gl={{ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
       onPointerMissed={() => {
         uniformsRef.current.uSelectedNode.value = -1.0;
         traceDataArrayRef.current.fill(0);

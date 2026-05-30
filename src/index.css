@@ -902,6 +902,43 @@ input[type="range"]::-moz-range-thumb {
   transform: translateX(-50%) translateY(0);
 }
 
+/* Screenshot Preview in Share Modal */
+.screenshot-preview-container {
+  margin: 1.5rem 0 0.5rem 0;
+  border-radius: var(--panel-radius);
+  border: 1px solid var(--glass-border);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.screenshot-preview {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--glass-border);
+  transition: transform 0.5s ease;
+}
+
+.screenshot-preview-container:hover .screenshot-preview {
+  transform: scale(1.02);
+}
+
+.screenshot-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(0, 0, 0, 0.3);
+  justify-content: flex-end;
+}
+
+.screenshot-action-btn {
+  font-size: 0.85rem !important;
+  padding: 0.5rem 1rem !important;
+}
+
 /* Watermarks & Bottom Links */
 .bottom-left-links {
   position: fixed;
