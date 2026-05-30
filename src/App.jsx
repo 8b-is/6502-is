@@ -5,6 +5,7 @@ import ProgrammingPanel from './components/ProgrammingPanel';
 import { LAYER_INFO } from './utils/geometryBuilder';
 import { getInstructionExplanation } from './utils/instructionExplanations';
 import AboutModal from './components/AboutModal';
+import ShareModal from './components/ShareModal';
 import ExperienceModal from './components/ExperienceModal';
 import logo8b from './assets/8b-logo.png';
 import './index.css';
@@ -23,6 +24,7 @@ function App() {
   const [layerSpacing, setLayerSpacing] = useState(1.0);
   const [machineState, setMachineState] = useState(null);
   const [showAbout, setShowAbout] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [dashboardCollapsed, setDashboardCollapsed] = useState(false);
   const [themeMode, setThemeMode] = useState(null);
   const [isEStop, setIsEStop] = useState(false);
@@ -81,6 +83,18 @@ function App() {
               onClick={() => setIsEStop(!isEStop)}
             >
               {isEStop ? '⚠️' : '🛑'}
+            </button>
+            <button className="share-btn" onClick={() => setShowShare(true)} aria-label="Share 6502.is">
+              <span className="share-btn-full">Share</span>
+              <span className="share-btn-short" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px', display: 'block' }}>
+                  <circle cx="18" cy="5" r="3"/>
+                  <circle cx="6" cy="12" r="3"/>
+                  <circle cx="18" cy="19" r="3"/>
+                  <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                  <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+                </svg>
+              </span>
             </button>
             <button className="about-btn" onClick={() => setShowAbout(true)} aria-label="About 6502.is">
               <span className="about-btn-full">About 6502.is</span>
@@ -171,6 +185,7 @@ function App() {
       </div>
 
       {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
+      {showShare && <ShareModal onClose={() => setShowShare(false)} />}
     </div>
   );
 }

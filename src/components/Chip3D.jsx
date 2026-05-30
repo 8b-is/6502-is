@@ -43,7 +43,7 @@ function PinLegend({ visible }) {
 
 function PlexiglassOverlay({ visible, config }) {
   // Removed Date.now() to prevent infinite re-fetching
-  const texture = useLoader(THREE.TextureLoader, '/cd.svg');
+  const texture = useLoader(THREE.TextureLoader, '/bcd.svg');
   if (!visible) return null;
 
   // Apply flips via texture repeat
@@ -55,10 +55,10 @@ function PlexiglassOverlay({ visible, config }) {
   const rot = (config.rotation * Math.PI) / 180;
 
   return (
-    <group>
-      {/* 1. Main Dark Glass Pane covering the entire chip */}
-      <mesh position={[0, 0, 4.0]}>
-        <boxGeometry args={[100, 100, 1.0]} />
+    <group position={[config.offsetX, config.offsetY, 4.0]} rotation={[0, 0, rot]}>
+      {/* 1. Main Dark Glass Pane matching schematic size */}
+      <mesh position={[0, 0, 0]}>
+        <boxGeometry args={[config.scaleX, config.scaleY, 1.0]} />
         <meshPhysicalMaterial
           color="#000000"
           transparent={true}
@@ -71,10 +71,7 @@ function PlexiglassOverlay({ visible, config }) {
       </mesh>
 
       {/* 2. Emissive Diagram Overlay floating just above the glass */}
-      <mesh 
-        position={[config.offsetX, config.offsetY, 4.6]} 
-        rotation={[0, 0, rot]}
-      >
+      <mesh position={[0, 0, 0.6]}>
         <planeGeometry args={[config.scaleX, config.scaleY]} />
         <meshBasicMaterial
           map={texture}
@@ -188,8 +185,8 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
               const isVia = layerId === '6';
 
               return (
-                <mesh 
-                  key={layerId} 
+                <mesh
+                  key={layerId}
                   geometry={geometries[layerId]}
                   position={[0, 0, info.z * (layerSpacing - 1.0)]}
                   onClick={(e) => {
@@ -197,23 +194,23 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                     if (e.face) {
                       const geom = geometries[layerId];
                       const nodeId = geom.attributes.aNodeId.array[e.face.a];
-                      
+
                       const traceData = traceDataArrayRef.current;
                       traceData.fill(0);
-                      
+
                       const visited = new Set();
                       const queue = [nodeId];
-                      
-                      while(queue.length > 0) {
+
+                      while (queue.length > 0) {
                         const currId = queue.shift();
                         if (visited.has(currId)) continue;
                         visited.add(currId);
-                        
+
                         traceData[currId * 4] = 255;
                         traceData[currId * 4 + 1] = 255;
                         traceData[currId * 4 + 2] = 255;
                         traceData[currId * 4 + 3] = 255;
-                        
+
                         // Prevent trace explosion by NOT traversing through power/ground rails
                         if (currId === ngnd || currId === npwr) {
                           continue;
@@ -232,9 +229,9 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                           }
                         }
                       }
-                      
+
                       traceTextureRef.current.needsUpdate = true;
-                      
+
                       uniformsRef.current.uSelectedNode.value = nodeId;
                       uniformsRef.current.uClickPos.value.copy(e.point);
                       uniformsRef.current.uClickTime.value = uniformsRef.current.uTime.value;
@@ -269,7 +266,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                       shader.uniforms.uClickPos = uniformsRef.current.uClickPos;
                       shader.uniforms.uClickTime = uniformsRef.current.uClickTime;
                       shader.uniforms.uSafeMode = uniformsRef.current.uSafeMode;
-                      
+
                       shader.vertexShader = `
                         attribute float aNodeId;
                         varying float vNodeId;
