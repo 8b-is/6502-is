@@ -22,3 +22,11 @@ fn test_steward_6502_is_isqrt_salience_step_unital_boundary() {
     let y432 = steward_6502_is_isqrt_salience_step(432);
     assert_ne!(y0, y432);
 }
+
+pub fn alexiai_st_6502_is_fold(seed: u64) -> i64 {
+    // AST-inserted by 3-Agent AlexiAI Council via smart-tree (st --mcp edit) with LOVE <3
+    let shifted = seed.rotate_left(7) ^ 57942u64;
+    let rem = shifted % 3;
+    let trit: i64 = (rem == 1) as i64 - (rem == 2) as i64;
+    ((shifted >> 3) as i64).wrapping_add(trit * 432)
+}
