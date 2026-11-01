@@ -6,12 +6,12 @@ export const CHIP_SIZE = 10000;
 export const SCALE = 100 / CHIP_SIZE; // Scale the 10000 coordinate system down to roughly 100 units
 
 export const LAYER_INFO = {
-  3: { name: 'Grounded Diffusion', z: 0.0, extrude: 0.5, color: '#4DFF4D' },
-  4: { name: 'Powered Diffusion', z: 0.0, extrude: 0.5, color: '#FF4D4D' },
-  1: { name: 'Switched Diffusion', z: 0.0, extrude: 0.5, color: '#FFFF00' },
-  2: { name: 'Input Diode', z: 0.5, extrude: 0.2, color: '#FF00FF' },
-  5: { name: 'Polysilicon', z: 1.0, extrude: 0.5, color: '#801AC0' },
-  0: { name: 'Metal', z: 2.5, extrude: 0.5, color: '#b0b0d0' },
+  3: { name: 'Grounded Diffusion', z: 0.0, extrude: 0.5, color: '#6dba93' },
+  4: { name: 'Powered Diffusion', z: 0.0, extrude: 0.5, color: '#d99b7d' },
+  1: { name: 'Switched Diffusion', z: 0.0, extrude: 0.5, color: '#d2c786' },
+  2: { name: 'Input Diode', z: 0.5, extrude: 0.2, color: '#b29cce' },
+  5: { name: 'Polysilicon', z: 1.0, extrude: 0.5, color: '#72aaa9' },
+  0: { name: 'Metal', z: 2.5, extrude: 0.5, color: '#b3d9c0' },
 };
 
 export function buildChipGeometries() {

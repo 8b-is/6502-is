@@ -1,240 +1,144 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { 
-  initChip, 
-  step, 
-  loadProgram,
-  getMachineState, 
-  userCode,
-  mRead
-} from '../simulation/engine';
-import { getInstructionExplanation } from '../utils/instructionExplanations';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
+import { initChip, step, loadProgram, getMachineState, userCode, mRead } from '../simulation/engine';
 import { disassemble } from '../utils/disassembler';
 
 const DEFAULT_PROGRAM = 'A9 01 A2 00 E8 8A 9D 00 02 2A E0 FF D0 F6 CA 8A 9D 00 03 6A E0 00 D0 F6 4C 00 00';
 
-export default function ProgrammingPanel({ setSharedMachineState, themeMode, isEStop }) {
-  const [machineState, setMachineState] = useState(null);
+export default function ProgrammingPanel({ setSharedMachineState, isEStop, onRunningChange }) {
   const [hexInput, setHexInput] = useState(DEFAULT_PROGRAM);
   const [clockHz, setClockHz] = useState(1);
   const [isRunning, setIsRunning] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
   const [showEditorModal, setShowEditorModal] = useState(false);
-
-  const clockHzRef = useRef(1);
-  const runTimerRef = useRef(null);
-  const lastFrameTimeRef = useRef(performance.now());
+  const [error, setError] = useState('');
   const currentInstructionRef = useRef('BRK');
   const prevLoadedLenRef = useRef(0);
+  const clockHzRef = useRef(clockHz);
+  const cancelLoopRef = useRef(() => {});
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  useEffect(() => {
-    if (isEStop && isRunning) {
-      stopSimulation();
-    }
-  }, [isEStop, isRunning]);
 
-  const updateState = React.useCallback(() => {
+  const updateState = useCallback(() => {
     const state = getMachineState();
-    if (state.fetch) {
-      currentInstructionRef.current = disassemble(state.pc, mRead);
-    }
-    state.fullInstruction = currentInstructionRef.current;
-    state.clockHz = clockHzRef.current;
-    
-    setMachineState(state);
-    if (setSharedMachineState) setSharedMachineState(state);
+    if (state.fetch) currentInstructionRef.current = disassemble(state.pc, mRead);
+    setSharedMachineState?.({ ...state, fullInstruction: currentInstructionRef.current, clockHz: clockHzRef.current });
   }, [setSharedMachineState]);
 
-  const loadAndReset = React.useCallback((codeToLoad) => {
+  const stopSimulation = useCallback(() => {
+    cancelLoopRef.current();
+    setIsRunning(false);
+  }, []);
+
+  const loadAndReset = useCallback((source) => {
+    const tokens = source.trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length || tokens.length > 65536 || tokens.some(token => !/^[0-9a-f]{2}$/i.test(token))) {
+      setError('Use two-digit hex bytes separated by spaces (for example, A9 01).');
+      return false;
+    }
     stopSimulation();
-
-    const source = typeof codeToLoad === 'string' ? codeToLoad : hexInput;
-    const bytes = source.replace(/[^0-9A-Fa-f]/g, ' ')
-                          .trim()
-                          .split(/\s+/)
-                          .map(b => parseInt(b, 16))
-                          .filter(b => !isNaN(b));
-
-    // Overwrite previously-loaded bytes with 0 so a shorter program doesn't leave a tail.
-    // loadProgram() skips `undefined` slots, so use explicit zeros.
+    setError('');
+    const bytes = tokens.map(token => parseInt(token, 16));
     userCode.length = 0;
     const span = Math.max(bytes.length, prevLoadedLenRef.current);
-    for (let i = 0; i < span; i++) {
-      userCode[i] = i < bytes.length ? bytes[i] : 0;
-    }
+    for (let i = 0; i < span; i++) userCode[i] = bytes[i] ?? 0;
     prevLoadedLenRef.current = bytes.length;
-
     loadProgram();
     initChip();
     updateState();
-  }, [hexInput, updateState]);
+    return true;
+  }, [stopSimulation, updateState]);
 
-  // Initialize chip once on mount
   useEffect(() => {
+    // The module-level transistor engine is external state; publish its reset snapshot on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadAndReset(DEFAULT_PROGRAM);
-    return () => stopSimulation();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [loadAndReset]);
 
-  const stepSimulation = () => {
-    // 6502 instructions take multiple clock cycles (steps).
-    // We can step multiple times until the 'sync' node goes high indicating a new instruction fetch,
-    // or just step 1 clock cycle. We'll step 1 full clock cycle.
-    step();
-    step();
-    updateState();
-  };
+  useEffect(() => {
+    onRunningChange?.(isRunning && !isEStop);
+  }, [isRunning, isEStop, onRunningChange]);
 
-  const runSimulation = () => {
-    setIsRunning(true);
-    lastFrameTimeRef.current = performance.now();
-    
+  useEffect(() => {
+    // Latch the external emergency stop so releasing it cannot restart the clock.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (isEStop) stopSimulation();
+  }, [isEStop, stopSimulation]);
+
+  useEffect(() => {
+    if (!isRunning || isEStop) return;
+    let cancelled = false;
+    let timer;
+    let frame;
     const loop = () => {
-      // Calculate how many steps we need to take based on the target Hz
-      const now = performance.now();
-      const dt = now - lastFrameTimeRef.current;
-      
-      if (clockHzRef.current <= 60) {
-        // For low frequencies, step once and wait
-        step();
-        updateState();
-        runTimerRef.current = setTimeout(() => {
-          lastFrameTimeRef.current = performance.now();
-          requestAnimationFrame(loop);
-        }, 1000 / clockHzRef.current);
-      } else {
-        // For high frequencies, run multiple steps per frame
-        // to achieve the target Hz (up to what the CPU can handle without freezing)
-        const targetStepsPerFrame = clockHzRef.current / 60;
-        
-        // Prevent freezing the browser: max 1000 steps per frame (limits to ~60kHz visual6502)
-        // Note: visual6502 is very CPU intensive.
-        const stepsToTake = Math.min(Math.floor(targetStepsPerFrame), 5000);
-        
-        for (let i = 0; i < stepsToTake; i++) {
-          step();
-        }
-        updateState();
-        lastFrameTimeRef.current = performance.now();
-        runTimerRef.current = setTimeout(() => requestAnimationFrame(loop), 0);
-      }
+      if (cancelled) return;
+      // One visible tick is one full cycle, just like the Step button.
+      const cycles = clockHz <= 60 ? 1 : Math.max(1, Math.round(clockHz / 60));
+      for (let i = 0; i < cycles; i++) { step(); step(); }
+      updateState();
+      timer = setTimeout(() => { if (!cancelled) frame = requestAnimationFrame(loop); }, 1000 / Math.min(clockHz, 60));
     };
-    
-    // Start loop
-    if (clockHzRef.current <= 60) {
-      runTimerRef.current = setTimeout(() => {
-        lastFrameTimeRef.current = performance.now();
-        requestAnimationFrame(loop);
-      }, 1000 / clockHzRef.current);
-    } else {
-      runTimerRef.current = setTimeout(() => requestAnimationFrame(loop), 0);
-    }
-  };
+    const cancel = () => { cancelled = true; clearTimeout(timer); cancelAnimationFrame(frame); };
+    cancelLoopRef.current = cancel;
+    timer = setTimeout(() => { if (!cancelled) frame = requestAnimationFrame(loop); }, 1000 / Math.min(clockHz, 60));
+    return cancel;
+  }, [isRunning, isEStop, clockHz, updateState]);
 
-  const stopSimulation = () => {
-    setIsRunning(false);
-    if (runTimerRef.current) {
-      clearTimeout(runTimerRef.current);
-      runTimerRef.current = null;
-    }
-  };
-
-  const toHex = (num, padding = 2) => num !== undefined ? num.toString(16).toUpperCase().padStart(padding, '0') : '00';
-
+  const stepSimulation = () => { step(); step(); updateState(); };
   const editorContent = (
     <>
       <div className="hex-editor">
-        <label>Machine Code (Hex):</label>
-        <textarea 
-          value={hexInput}
-          onChange={(e) => setHexInput(e.target.value)}
-          spellCheck="false"
-        />
+        <label htmlFor="machine-code">Machine code / HEX</label>
+        <textarea id="machine-code" value={hexInput} onChange={event => setHexInput(event.target.value)} spellCheck="false" aria-invalid={!!error} aria-describedby={error ? 'hex-error' : undefined} />
+        {error && <p id="hex-error" role="alert" style={{ color: '#eab39c', fontSize: '11px' }}>{error}</p>}
       </div>
-
-      <div className="speed-control" style={{marginTop: '10px', marginBottom: '10px'}}>
-        <label>Clock Speed: {clockHz} Hz</label>
-        <input 
-          type="range" 
-          min="1" 
-          max="120" 
-          step="1"
-          value={clockHz} 
-          onChange={(e) => {
-            const val = parseInt(e.target.value);
-            setClockHz(val);
-            clockHzRef.current = val;
-          }}
-          style={{width: '100%'}}
-        />
-        <div style={{display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#666'}}>
-          <span>1 Hz</span>
-          <span>120 Hz</span>
-        </div>
+      <div className="speed-control">
+        <label htmlFor="clock-speed">Clock speed <span style={{ float: 'right', color: 'var(--accent-color)' }}>{clockHz} Hz</span></label>
+        <input id="clock-speed" type="range" min="1" max="120" step="1" value={clockHz} onChange={event => {
+          const value = Number(event.target.value);
+          clockHzRef.current = value;
+          setClockHz(value);
+        }} style={{ width: '100%' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>1 Hz</span><span>120 Hz</span></div>
       </div>
     </>
   );
+  const executionControls = <>
+    <button className="btn primary" onClick={() => loadAndReset(hexInput)}>Load / Reset</button>
+    <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step →</button>
+    {isRunning ? <button className="btn stop" onClick={stopSimulation}>Ⅱ Pause</button>
+      : <button className="btn run" onClick={() => setIsRunning(true)} disabled={isEStop}>▶ Run</button>}
+  </>;
 
-  if (isMobile) {
-    return (
-      <div className="mobile-programming-controls">
-        {showEditorModal && (
-          <div className="modal-overlay" onClick={() => setShowEditorModal(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowEditorModal(false)}>×</button>
-              <h2>Program Editor</h2>
-              {editorContent}
-              <div className="modal-controls">
-                <button className="btn primary" onClick={() => { loadAndReset(); setShowEditorModal(false); }}>Load & Reset</button>
-                <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <button className="btn btn-circle" onClick={() => setShowEditorModal(true)} title="Edit Program" aria-label="Edit Program">📝</button>
-        <button className="btn btn-circle primary" onClick={() => loadAndReset()} title="Reset Simulation" aria-label="Reset Simulation">🔄</button>
-        {isRunning ? (
-          <button className="btn btn-circle stop" onClick={stopSimulation} title="Pause Simulation" aria-label="Pause Simulation">⏸</button>
-        ) : (
-          <button className="btn btn-circle run" onClick={runSimulation} disabled={isEStop} title="Run Simulation" aria-label="Run Simulation">▶️</button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className={`programming-panel ${isCollapsed ? 'collapsed' : ''}`}>
-      <div
-        className="panel-header"
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        role="button"
-        tabIndex={0}
-        aria-expanded={!isCollapsed}
-        aria-label={isCollapsed ? 'Expand program execution' : 'Collapse program execution'}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
-      >
-        <h2>Program Execution</h2>
-        <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
-      </div>
-      
-      <div className="panel-content">
-        {editorContent}
-        <div className="controls">
-          <button className="btn primary" onClick={() => loadAndReset()}>Load & Reset</button>
-          <button className="btn" onClick={stepSimulation} disabled={isRunning || isEStop}>Step</button>
-          {isRunning ? (
-            <button className="btn stop" onClick={stopSimulation}>Pause</button>
-          ) : (
-            <button className="btn run" onClick={runSimulation} disabled={isEStop}>Run</button>
-          )}
+  if (isMobile) return (
+    <div className="mobile-programming-controls">
+      {showEditorModal && createPortal(<div className="modal-overlay" onClick={() => setShowEditorModal(false)}>
+        <div className="modal-content" role="dialog" aria-modal="true" aria-label="Program console" onClick={event => event.stopPropagation()}>
+          <button className="modal-close" aria-label="Close program console" onClick={() => setShowEditorModal(false)}>×</button>
+          <h2>Program console</h2>{editorContent}
+          <div className="modal-controls">{executionControls}</div>
         </div>
-      </div>
+      </div>, document.querySelector('.app-container'))}
+      <button className="btn btn-circle" onClick={() => setShowEditorModal(true)} title="Edit program" aria-label="Edit program">⌘</button>
+      <button className="btn btn-circle primary" onClick={() => loadAndReset(hexInput)} title="Reset simulation" aria-label="Reset simulation">↺</button>
+      <button className="btn btn-circle" onClick={stepSimulation} disabled={isRunning || isEStop} title="Step one cycle" aria-label="Step one cycle">→</button>
+      {isRunning ? <button className="btn btn-circle stop" onClick={stopSimulation} aria-label="Pause simulation">Ⅱ</button>
+        : <button className="btn btn-circle run" onClick={() => setIsRunning(true)} disabled={isEStop} aria-label="Run simulation">▶</button>}
     </div>
   );
+
+  return <div className={`programming-panel ${isCollapsed ? 'collapsed' : ''}`}>
+    <div className="panel-header" role="button" tabIndex={0} aria-expanded={!isCollapsed}
+      aria-label={isCollapsed ? 'Expand program console' : 'Collapse program console'}
+      onClick={() => setIsCollapsed(!isCollapsed)}
+      onKeyDown={event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); setIsCollapsed(!isCollapsed); } }}>
+      <h2>Program console</h2><span className="collapse-btn" aria-hidden="true">⌄</span>
+    </div>
+    <div className="panel-content">{editorContent}<div className="controls">{executionControls}</div></div>
+  </div>;
 }

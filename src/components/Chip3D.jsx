@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
-import { OrbitControls, Environment, Center, Html, Text } from '@react-three/drei';
+import { Environment, Center, Text } from '@react-three/drei';
+import { ObservatoryCamera, ObservatoryAtmosphere } from './ObservatoryScene';
 import { buildChipGeometries, LAYER_INFO, SCALE } from '../utils/geometryBuilder';
-import { getInstructionExplanation } from '../utils/instructionExplanations';
 import { nodes, toggleNode, ngnd, npwr } from '../simulation/engine';
 import { padPositions } from '../data/padPositions';
 import * as THREE from 'three';
@@ -46,12 +46,6 @@ function PlexiglassOverlay({ visible, config }) {
   const texture = useLoader(THREE.TextureLoader, '/bcd.svg');
   if (!visible) return null;
 
-  // Apply flips via texture repeat
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.x = config.flipX ? -1 : 1;
-  texture.repeat.y = config.flipY ? -1 : 1;
-
   const rot = (config.rotation * Math.PI) / 180;
 
   return (
@@ -71,7 +65,7 @@ function PlexiglassOverlay({ visible, config }) {
       </mesh>
 
       {/* 2. Emissive Diagram Overlay floating just above the glass */}
-      <mesh position={[0, 0, 0.6]}>
+      <mesh position={[0, 0, 0.6]} scale={[config.flipX ? -1 : 1, config.flipY ? -1 : 1, 1]}>
         <planeGeometry args={[config.scaleX, config.scaleY]} />
         <meshBasicMaterial
           map={texture}
@@ -86,39 +80,52 @@ function PlexiglassOverlay({ visible, config }) {
   );
 }
 
-export default function Chip3D({ visibleLayers, machineState, overlayConfig, layerSpacing = 1.0, themeMode, isEStop }) {
+export default function Chip3D({ visibleLayers, machineState, overlayConfig, layerSpacing = 1.0, themeMode, isEStop, viewMode = 'orbit', autoRotate = false, resetKey = 0 }) {
   const [geometries, setGeometries] = useState({});
   const [loading, setLoading] = useState(true);
 
-  const dataArrayRef = useRef(new Uint8Array(2048 * 4));
-  const textureRef = useRef(new THREE.DataTexture(dataArrayRef.current, 2048, 1, THREE.RGBAFormat));
-
-  const traceDataArrayRef = useRef(new Uint8Array(2048 * 4));
-  const traceTextureRef = useRef(new THREE.DataTexture(traceDataArrayRef.current, 2048, 1, THREE.RGBAFormat));
-
-  const uniformsRef = useRef({
-    nodeStateTexture: { value: textureRef.current },
-    tracePathTexture: { value: traceTextureRef.current },
-    uTime: { value: 0 },
-    uSelectedNode: { value: -1.0 },
-    uClickPos: { value: new THREE.Vector3() },
-    uClickTime: { value: -1000.0 },
-    uSafeMode: { value: 0.0 }
+  const [gpu] = useState(() => {
+    const data = new Uint8Array(2048 * 4);
+    const traceData = new Uint8Array(2048 * 4);
+    const texture = new THREE.DataTexture(data, 2048, 1, THREE.RGBAFormat);
+    const traceTexture = new THREE.DataTexture(traceData, 2048, 1, THREE.RGBAFormat);
+    return { data, traceData, texture, traceTexture, uniforms: {
+      nodeStateTexture: { value: texture },
+      tracePathTexture: { value: traceTexture },
+      uTime: { value: 0 },
+      uSelectedNode: { value: -1.0 },
+      uClickPos: { value: new THREE.Vector3() },
+      uClickTime: { value: -1000.0 },
+      uSafeMode: { value: 0.0 },
+    } };
   });
+  const dataArrayRef = useRef(gpu.data);
+  const textureRef = useRef(gpu.texture);
+  const traceDataArrayRef = useRef(gpu.traceData);
+  const traceTextureRef = useRef(gpu.traceTexture);
+  const uniformsRef = useRef(gpu.uniforms);
+
+  useEffect(() => () => {
+    gpu.texture.dispose();
+    gpu.traceTexture.dispose();
+  }, [gpu]);
 
   useEffect(() => {
     uniformsRef.current.uSafeMode.value = themeMode === 'safe' ? 1.0 : 0.0;
   }, [themeMode]);
 
   useEffect(() => {
-    setTimeout(() => {
-      console.log("Building geometries...");
-      const result = buildChipGeometries();
-      console.log("Geometries built!");
+    let result;
+    const timer = setTimeout(() => {
+      result = buildChipGeometries();
       setGeometries(result);
       setLoading(false);
       textureRef.current.needsUpdate = true;
     }, 100);
+    return () => {
+      clearTimeout(timer);
+      if (result) Object.values(result).forEach(geometry => geometry?.dispose());
+    };
   }, []);
 
   const updateNodeTexture = React.useCallback(() => {
@@ -149,7 +156,7 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
 
   return (
     <Canvas
-      camera={{ position: [0, 40, 60], fov: 45 }}
+      camera={{ position: [65, 112, 118], fov: 45, near: 0.1, far: 1500 }}
       dpr={[1, 1.5]}
       gl={{ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
       onPointerMissed={() => {
@@ -158,15 +165,13 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
         traceTextureRef.current.needsUpdate = true;
       }}
     >
-      <color attach="background" args={[themeMode === 'safe' ? '#e0e0e3' : '#050508']} />
-
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[10, 20, 30]} intensity={1.5} />
-      <directionalLight position={[-10, 20, -10]} intensity={0.5} />
-
-      <Environment files="/potsdamer_platz_1k.hdr" />
-
-      <ShaderUpdater uniformsRef={uniformsRef} isEStop={isEStop} />
+      <ambientLight intensity={0.65} />
+      <directionalLight position={[10, 80, 30]} intensity={2.4} color="#d4ffe3" />
+      <directionalLight position={[-60, 20, -40]} intensity={1.5} color="#e9c997" />
+      <pointLight position={[0, -12, 40]} intensity={35} color="#74ffcb" decay={1} />
+      <React.Suspense fallback={null}><Environment files="/potsdamer_platz_1k.hdr" /></React.Suspense>
+      <ObservatoryAtmosphere still={isEStop || themeMode === 'safe'} />
+      <ShaderUpdater uniformsRef={uniformsRef} isEStop={isEStop || themeMode === 'safe'} />
 
       {loading && (
         <mesh>
@@ -289,8 +294,9 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                           if (nodeState.r > 0.5) {
                             gl_FragColor = vec4(gl_FragColor.rgb * 1.5, gl_FragColor.a);
                           } else {
-                            gl_FragColor = vec4(gl_FragColor.rgb * 0.4, gl_FragColor.a);
+                            gl_FragColor = vec4(gl_FragColor.rgb * 0.65, gl_FragColor.a);
                           }
+                          if (isTraced) gl_FragColor.rgb += vec3(0.15, 0.4, 0.25);
                         } else if (isTraced) {
                           float timeSinceClick = mod(max(0.0, uTime - uClickTime), 4.0);
                           
@@ -306,27 +312,26 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
                           float sparkIntensity = smoothstep(sparkFront - tailLength, sparkFront, manhattanDist) * step(manhattanDist, sparkFront + 0.5);
                           
                           // Make the line itself glow a bit
-                          vec3 baseColor = gl_FragColor.rgb * 1.5 + vec3(0.0, 0.4, 0.8);
+                          vec3 baseColor = gl_FragColor.rgb + vec3(0.1, 0.35, 0.2);
                           
-                          // Add the bright traveling spark
-                          vec3 sparkColor = vec3(0.5, 1.0, 1.0) * 10.0; // Electric cyan
-                          float flicker = sin(uTime * 50.0) * 0.2 + 0.8;
+                          // A soft signal front, never a strobe.
+                          vec3 sparkColor = vec3(0.7, 1.0, 0.8) * 1.4;
+                          float flicker = 1.0;
                           
                           gl_FragColor = vec4(mix(baseColor, sparkColor * flicker, sparkIntensity), gl_FragColor.a);
                         } else if (nodeState.r > 0.5) {
                           float offset = fract(sin(vNodeId * 12.9898) * 43758.5453);
                           float dir = sign(offset - 0.5); 
                           float scale = 0.02;
-                          float speed = 1.5;
+                          float speed = 0.12;
                           float lineX = fract((vPos.x * scale * dir + offset * 10.0) - uTime * speed);
                           float lineY = fract((vPos.y * scale * dir + offset * 10.0) - uTime * speed);
                           float sparkX = smoothstep(0.85, 1.0, lineX) * step(lineX, 0.99);
                           float sparkY = smoothstep(0.85, 1.0, lineY) * step(lineY, 0.99);
                           float spark = max(sparkX, sparkY);
-                          float flicker = sin(uTime * 30.0 + vNodeId) * 0.2 + 0.8;
                           vec3 baseColor = gl_FragColor.rgb * 1.2;
-                          vec3 baseGlow = vec3(0.0, 0.3, 0.7);
-                          vec3 sparkColor = vec3(0.6, 0.9, 1.0) * 4.0 * flicker;
+                          vec3 baseGlow = vec3(0.06, 0.17, 0.12);
+                          vec3 sparkColor = vec3(0.45, 0.7, 0.5) * 0.65;
                           gl_FragColor = vec4(baseColor + baseGlow + sparkColor * spark, gl_FragColor.a);
                         } else {
                           gl_FragColor = vec4(gl_FragColor.rgb * 0.4, gl_FragColor.a);
@@ -371,13 +376,13 @@ export default function Chip3D({ visibleLayers, machineState, overlayConfig, lay
             <React.Suspense fallback={null}>
               {/* Overlays */}
               <PlexiglassOverlay visible={visibleLayers.diagramOverlay > 0} config={overlayConfig} />
-              {visibleLayers.pinLegend > 0 && <PinLegend />}
+              {visibleLayers.pinLegend > 0 && <PinLegend visible />}
             </React.Suspense>
           </group>
         </Center>
       )}
 
-      <OrbitControls makeDefault minPolarAngle={0} maxPolarAngle={Math.PI} />
+      <ObservatoryCamera viewMode={viewMode} autoRotate={autoRotate} resetKey={resetKey} isEStop={isEStop} />
     </Canvas>
   );
 }

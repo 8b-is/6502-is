@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { LAYER_INFO } from '../utils/geometryBuilder';
 
 export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayConfig, setOverlayConfig, layerSpacing, setLayerSpacing }) {
@@ -31,7 +32,7 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
     <div className="panel-content">
       <div className="layer-list">
         <label className="layer-item active" style={{ marginBottom: '1rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '1rem' }}>
-          <span className="layer-name" style={{ flex: '1', fontWeight: 'bold' }}>Z-Spacing Multiplier</span>
+          <span className="layer-name" style={{ flex: '1', fontWeight: 'bold' }}>Layer separation</span>
           <input
             type="range"
             min="0" max="10" step="0.1"
@@ -55,9 +56,9 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
         ))}
       </div>
 
-      <div className="advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced)} style={{ cursor: 'pointer', marginTop: '1rem', color: '#888', fontSize: '0.8rem', textAlign: 'center' }}>
-        {showAdvanced ? 'Hide Advanced Overlays ▲' : 'Show Advanced Overlays ▼'}
-      </div>
+      <button className="advanced-toggle" onClick={() => setShowAdvanced(!showAdvanced)} aria-expanded={showAdvanced}>
+        {showAdvanced ? '− Hide overlays' : '+ Diagram & pin overlays'}
+      </button>
 
       {showAdvanced && (
         <>
@@ -125,17 +126,14 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
       <button
         className="toggle-all-btn"
         onClick={() => {
-          const anyHidden = Object.values(visibleLayers).some(v => !v);
-          const nextState = {};
-          Object.keys(LAYER_INFO).forEach(id => {
-            nextState[id] = anyHidden;
-          });
-          nextState.diagramOverlay = anyHidden;
-          nextState.pinLegend = anyHidden;
-          setVisibleLayers(nextState);
+          const anyHidden = Object.keys(LAYER_INFO).some(id => !visibleLayers[id]);
+          setVisibleLayers(previous => ({
+            ...previous,
+            ...Object.fromEntries(Object.keys(LAYER_INFO).map(id => [id, anyHidden ? 0.85 : 0])),
+          }));
         }}
       >
-        Toggle All
+        {Object.keys(LAYER_INFO).some(id => !visibleLayers[id]) ? 'Show all layers' : 'Hide all layers'}
       </button>
     </div>
   );
@@ -147,18 +145,19 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
           className="btn mobile-gear-btn"
           onClick={() => setShowModal(true)}
           title="Layer Settings"
+          aria-label="Layer settings"
           style={{ fontSize: '1.5rem', padding: '8px 12px', borderRadius: '12px', background: 'var(--glass-bg)', border: '1px solid var(--glass-border)', color: '#fff', cursor: 'pointer' }}
         >
-          ⚙️
+          ≋
         </button>
-        {showModal && (
+        {showModal && createPortal(
           <div className="modal-overlay" onClick={() => setShowModal(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <button className="modal-close" onClick={() => setShowModal(false)}>×</button>
-              <h2>Chip Layers</h2>
+            <div className="modal-content" role="dialog" aria-modal="true" aria-label="Physical layers" onClick={e => e.stopPropagation()}>
+              <button className="modal-close" aria-label="Close layer settings" onClick={() => setShowModal(false)}>×</button>
+              <h2>Physical layers</h2>
               {layerContent}
             </div>
-          </div>
+          </div>, document.querySelector('.app-container')
         )}
       </div>
     );
@@ -175,8 +174,8 @@ export default function LayerToggle({ visibleLayers, setVisibleLayers, overlayCo
         aria-label={isCollapsed ? 'Expand chip layers' : 'Collapse chip layers'}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsCollapsed(!isCollapsed); } }}
       >
-        <h2>Chip Layers</h2>
-        <button className="collapse-btn" aria-hidden="true" tabIndex={-1} type="button">▼</button>
+        <h2>Physical layers</h2>
+        <span className="collapse-btn" aria-hidden="true">⌄</span>
       </div>
       {layerContent}
     </div>
